@@ -4,7 +4,7 @@ import rospy
 from geometry_msgs.msg import Twist, PoseArray
 from nav_msgs.msg import Odometry
 from tf.transformations import euler_from_quaternion
-from math import sin,cos,pi
+from math import sin,cos
 from time import sleep
 
 
@@ -50,25 +50,24 @@ def odometryCb(msg):
 def main():
 
 
-    rospy.init_node('controller', anonymous=True)
+    rospy.init_node('controller_node_task1')
 
     # odom subscribers
     rospy.Subscriber('/odom',Odometry,odometryCb)
     rospy.Subscriber('/task1_goals', PoseArray, task1_goals_Cb)
 
     # cmd_vel publisher
-    pub = rospy.Publisher('/cmd_vel',Twist,queue_size=100)
+    pub = rospy.Publisher('/cmd_vel',Twist,queue_size=10)
 
     vel = Twist()
-    rate = rospy.Rate(10)
+    rate = rospy.Rate(100)
 
     while len(x_goals) == 0:
-        continue
+        pub.publish(vel)
 
     for x,y,theta in zip(x_goals,y_goals,theta_goals):
 
-
-        while not rospy.is_shutdown():
+        while not rospy.is_shutdown() :
 
             # global error
             del_x = x - hola_x
@@ -80,29 +79,34 @@ def main():
             theta_err = theta - hola_theta
 
 
-            # exit if goal is reached
-            if abs(x_err) < 0.0075 and abs(y_err) < 0.0075 and abs(theta_err) < 0.0075 :
-                break
-
 
             vel.linear.x = x_err * 2
             vel.linear.y = y_err * 2
             vel.angular.z = theta_err * 5
 
+            # exit if goal is reached
+            if abs(x_err) < 0.0075 and abs(y_err) < 0.0075 and abs(theta_err) < 0.0075 :
+                break
+
             pub.publish(vel)
             rate.sleep()
-        
-        vel.linear.x = 0
-        vel.linear.y = 0
-        vel.angular.z = 0
-        
+
+        vel = Twist()
+
         pub.publish(vel)
         sleep(1.2);
+    
+
+    while 1:
+        pub.publish(vel)
+        rate.sleep()
+        
+        
 
 
 
 if __name__ == "__main__":
     try:
         main()
-    except rospy.ROSInterruptExceptionc:
+    except rospy.ROSInterruptException:
         pass
